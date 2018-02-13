@@ -1,4 +1,4 @@
 Rheem EcoNet
 ============
 
-[API](https://io.myrheem.com)
+[API](http://io.myrheem.com)
