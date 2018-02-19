@@ -8,6 +8,26 @@ const fs = require('fs');
 const path = process.cwd();
 const credentials = JSON.parse(fs.readFileSync(path + '/credentials.json'));
 
+// Serve graphs of operating history.
+
+const http = require('http');
+
+const hostname = '127.0.0.1';
+const port = 3000;
+
+const server = http.createServer((req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('Hello World\n');
+});
+
+server.listen(port, hostname, () => {
+    console.log(moment().format() +
+        ` - S - Startup on http://${hostname}:${port}/`);
+});
+
+// Collect operating data.
+
 async function logStatus() {
 
   const loginRes = await (await fetch('https://' + host + '/auth/token', {
@@ -31,7 +51,7 @@ async function logStatus() {
   })).json();
 
   let log = moment().format();
-  log += " - ";
+  log += " - L - ";
   log += equipRes.mode;
   log += " - lower " + equipRes.lowerTemp.toFixed(2);
   log += " - upper " + equipRes.upperTemp.toFixed(2);
