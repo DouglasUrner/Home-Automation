@@ -1,6 +1,8 @@
 const fetch = require('node-fetch')
 const moment = require('moment')
 
+var host = 'econet-api.rheemcert.com'
+
 // Get credentials
 var fs = require('fs')
 var path = process.cwd()
@@ -8,7 +10,7 @@ var credentials = JSON.parse(fs.readFileSync(path + '/credentials.json'))
 
 async function logStatus() {
 
-  const loginRes = await (await fetch('https://econet-api.rheemcert.com/auth/token', {
+  const loginRes = await (await fetch('https://' + host + '/auth/token', {
     method: 'POST',
     headers: {
       Accept: 'application/json, text/plain, */*',
@@ -21,7 +23,7 @@ async function logStatus() {
 
   const token = loginRes.access_token
 
-  const equipRes = await (await fetch('https://econet-api.rheemcert.com/equipment/78440', {
+  const equipRes = await (await fetch('https://' + host + '/equipment/' + credentials.id, {
     headers: {
       Accept: 'application/json, text/plain, */*',
       Authorization: 'Bearer ' + token
