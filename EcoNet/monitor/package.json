@@ -1,0 +1,12 @@
+{
+  "name": "monitor",
+  "version": "1.0.0",
+  "description": "Monitors the state of a Rheem hot water heater with an EcoNet interface.",
+  "main": "index.js",
+  "author": "Douglas Urner <dlu@canishe.com>",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "moment": "^2.20.1",
+    "node-fetch": "^2.0.0"
+  }
+}
