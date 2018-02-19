@@ -2,6 +2,8 @@ const fetch = require('node-fetch');
 const moment = require('moment');
 
 const host = 'econet-api.rheemcert.com';
+const minutesBetweenSamples = 5;
+const sampleInterval = minutesBetweenSamples * 60 * 1000;
 
 // Get credentials
 const fs = require('fs');
@@ -21,7 +23,8 @@ const server = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'text/plain');
     res.end(
         moment().format() + ' ' + currentStatus.name + '\n\n'
-        + 'Mode: ' + currentStatus.mode + ' In Use: ' + currentStatus.inUse + '\n\n'
+        + 'Mode: ' + currentStatus.mode + ' - '
+        + (currentStatus.inUse ? 'Heating' : 'Idle') + '\n\n'
         + 'Upper Temp: ' + currentStatus.upperTemp.toFixed(2) + '\n'
         + 'Lowor Temp: ' + currentStatus.lowerTemp.toFixed(2) + '\n'
     );
@@ -38,45 +41,51 @@ server.listen(port, hostname, () => {
 
 // Collect operating data.
 
+var currentStatus;
+
 async function logStatus() {
 
-  const loginRes = await (await fetch('https://' + host + '/auth/token', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json, text/plain, */*',
-      Authorization: 'Basic ' + credentials.authorization,
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-    },
-      body: 'username=' + credentials.username
-      + '&password=' + credentials.password + '&grant_type=password'
-  })).json();
+    const loginRes = await (await fetch('https://' + host + '/auth/token', {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json, text/plain, */*',
+            Authorization: 'Basic ' + credentials.authorization,
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: 'username=' + credentials.username
+        + '&password=' + credentials.password + '&grant_type=password'
+    })).json();
 
-  const token = loginRes.access_token;
+    const token = loginRes.access_token;
+    const id = credentials.id;
 
-  const equipRes = await (await fetch('https://' + host + '/equipment/' + credentials.id, {
-    headers: {
-      Accept: 'application/json, text/plain, */*',
-      Authorization: 'Bearer ' + token
-    },
-  })).json();
+    const equipRes = await (await fetch('https://' + host + '/equipment/' + id, {
+        headers: {
+            Accept: 'application/json, text/plain, */*',
+            Authorization: 'Bearer ' + token
+        },
+    })).json();
 
-  let log = moment().format();
-  log += " - L - ";
-  log += equipRes.mode;
-  log += " - lower " + equipRes.lowerTemp.toFixed(2);
-  log += " - upper " + equipRes.upperTemp.toFixed(2);
-  log += " - ambient " + equipRes.ambientTemp.toFixed(2);
-  log += " - ";
-  (["isLoadShiftOpted", "isLoadShedOpted", "isLoadShedActive", "isLoadShiftActive", "isEnabled", "isConnected", "isOnVacation", "hasCriticalAlert", "inUse"]).forEach(flag => {
-    if (equipRes[flag]) {
-      log += flag + ' '
-    }
-  });
-  console.log(log)
+    let log = moment().format();
+    log += " - L - ";
+    log += equipRes.mode;
+    log += " - lower " + equipRes.lowerTemp.toFixed(2);
+    log += " - upper " + equipRes.upperTemp.toFixed(2);
+    log += " - ambient " + equipRes.ambientTemp.toFixed(2);
+    log += " - ";
+    ([
+        "isLoadShiftOpted", "isLoadShedOpted",
+        "isLoadShedActive", "isLoadShiftActive",
+        "isEnabled", "isConnected", "isOnVacation", "hasCriticalAlert", "inUse"
+    ]).forEach(flag => {
+        if (equipRes[flag]) {
+            log += flag + ' '
+        }
+    });
+    console.log(log);
 
     currentStatus = equipRes;
 }
 
-var currentStatus;
 logStatus();
-setInterval(logStatus, 5 * 60 * 1000);
+setInterval(logStatus, sampleInterval);
