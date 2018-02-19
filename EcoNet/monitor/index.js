@@ -9,6 +9,7 @@ const path = process.cwd();
 const credentials = JSON.parse(fs.readFileSync(path + '/credentials.json'));
 
 // Serve graphs of operating history.
+// TODO: respond appropriately when data is no available.
 
 const http = require('http');
 
@@ -18,7 +19,16 @@ const port = 3000;
 const server = http.createServer((req, res) => {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain');
-    res.end('Hello World\n');
+    res.end(
+        moment().format() + ' ' + currentStatus.name + '\n\n'
+        + 'Mode: ' + currentStatus.mode + ' In Use: ' + currentStatus.inUse + '\n\n'
+        + 'Upper Temp: ' + currentStatus.upperTemp.toFixed(2) + '\n'
+        + 'Lowor Temp: ' + currentStatus.lowerTemp.toFixed(2) + '\n'
+    );
+
+    // Log request.
+    console.log(moment().format() + ' - R - ' +
+        req.method + ' ' + req.url);
 });
 
 server.listen(port, hostname, () => {
@@ -63,7 +73,10 @@ async function logStatus() {
     }
   });
   console.log(log)
+
+    currentStatus = equipRes;
 }
 
+var currentStatus;
 logStatus();
 setInterval(logStatus, 5 * 60 * 1000);
