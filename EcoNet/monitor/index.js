@@ -1,4 +1,5 @@
 const fetch = require('node-fetch')
+const moment = require('moment')
 
 // Get credentials
 var fs = require('fs')
@@ -27,7 +28,7 @@ async function logStatus() {
     },
   })).json()
 
-  let log = new Date().toISOString()
+  let log = moment().format()
   log += " - "
   log += equipRes.mode
   log += " - lower " + equipRes.lowerTemp.toFixed(2)
