@@ -2,10 +2,15 @@ const fetch = require('node-fetch');
 const moment = require('moment');
 
 const host = 'econet-api.rheemcert.com';
-const minutesBetweenSamples = 1;
-const sampleInterval = minutesBetweenSamples * 60 * 1000;
 
-// Get credentials
+const statusInterval = minutes(1);
+const usageInterval = minutes(60);
+
+function minutes(m) {
+    return m * 60 * 1000;
+}
+
+// Get credentials - synchronous, we're not going anywhere without them...
 const fs = require('fs');
 const path = process.cwd();
 const credentials = JSON.parse(fs.readFileSync(path + '/credentials.json'));
@@ -37,7 +42,7 @@ const server = http.createServer((req, res) => {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'text/plain');
             res.end(
-                'Usage data coming soon.'
+                lastUsage.toString()
             );
             break;
 
@@ -59,9 +64,14 @@ server.listen(port, hostname, () => {
 
 // Collect operating data.
 
-var currentStatus;
+let currentStatus = '';
+let lastUsage = '';
+let cachedToken = '';
 
-async function logStatus() {
+async function getToken() {
+    if(cachedToken) {
+        return cachedToken
+    }
 
     const loginRes = await (await fetch('https://' + host + '/auth/token', {
         method: 'POST',
@@ -74,7 +84,14 @@ async function logStatus() {
         + '&password=' + credentials.password + '&grant_type=password'
     })).json();
 
-    const token = loginRes.access_token;
+    cachedToken = loginRes.access_token;
+
+    return cachedToken;
+}
+
+async function logStatus() {
+    const token = await getToken();
+
     const id = credentials.id;
 
     const equipRes = await (await fetch('https://' + host + '/equipment/' + id, {
@@ -105,5 +122,24 @@ async function logStatus() {
     currentStatus = equipRes;
 }
 
+async function getUsage() {
+    const token = await getToken()
+
+    const usageRes = await (
+        await fetch('https://' + host + '/equipment/' + credentials.id + '/usage', {
+        headers: {
+            Accept: 'application/json, text/plain, */*',
+            Authorization: 'Bearer ' + token
+        },
+    })).json();
+    // console.log(usageRes.hours['2018-02-19T16:00:00.000']);
+    console.log(usageRes.energyUsage.hours['2018-02-19T16:00:00.000']);
+    console.log(usageRes.energyUsage.report.reports[0]);
+    lastUsage = usageRes;
+}
+
 logStatus();
-setInterval(logStatus, sampleInterval);
+setInterval(logStatus, statusInterval);
+getUsage();
+// TODO: sync with clock - collect new stats on the hour.
+setInterval(getUsage, usageInterval);
