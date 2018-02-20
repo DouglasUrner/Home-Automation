@@ -19,24 +19,32 @@ const hostname = '127.0.0.1';
 const port = 3000;
 
 const server = http.createServer((req, res) => {
-    if (req.url == '/' || req.url == '/status') {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end(
-            moment().format() + ' ' + currentStatus.name + '\n\n'
-            + 'Mode: ' + currentStatus.mode + ' - '
-            + (currentStatus.inUse ? 'Heating' : 'Idle') + '\n\n'
-            + 'Upper Temp: ' + currentStatus.upperTemp.toFixed(2) + '\n'
-            + 'Lowor Temp: ' + currentStatus.lowerTemp.toFixed(2) + '\n'
-        );
-    } else if (req.url == '/usage') {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end(
-            'Usage data coming soon.'
-        );
-    } else {
-        res.statusCode = 404;
+    switch (req.url) {
+        case '/':
+        case '/status':
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'text/plain');
+            res.end(
+                moment().format() + ' ' + currentStatus.name + '\n\n'
+                + 'Mode: ' + currentStatus.mode + ' - '
+                + (currentStatus.inUse ? 'Heating' : 'Idle') + '\n\n'
+                + 'Upper Temp: ' + currentStatus.upperTemp.toFixed(2) + '\n'
+                + 'Lowor Temp: ' + currentStatus.lowerTemp.toFixed(2) + '\n'
+            );
+            break;
+
+        case '/usage':
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'text/plain');
+            res.end(
+                'Usage data coming soon.'
+            );
+            break;
+
+        default:
+            res.statusCode = 404;
+            break;
+
     }
 
     // Log request.
