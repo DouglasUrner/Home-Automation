@@ -4,7 +4,7 @@ const moment = require('moment');
 const host = 'econet-api.rheemcert.com';
 
 const statusInterval = minutes(4); // Heater seems to update every 4 minutes.
-const usageInterval = minutes(60);
+const usageInterval = minutes(4);
 
 function minutes(m) {
     return m * 60 * 1000;
@@ -39,17 +39,45 @@ const server = http.createServer((req, res) => {
             break;
 
         case '/usage':
-            let usage = '';
-            let last24KWh = 0;
+            let usage = 'Last 24 hours:\n';
+
+            let last24hoursKWh = 0;
             Object.keys(lastUsage.energyUsage.hours).forEach((key, index) => {
-                last24KWh += lastUsage.energyUsage.hours[key];
+                last24hoursKWh += lastUsage.energyUsage.hours[key];
                 usage += key + ': ' + lastUsage.energyUsage.hours[key].toFixed(3) + '\n';
-            })
+            });
+
+            usage += '\n\nLast month:\n';
+
+            let last7daysKWh = 0;
+            let lastMonthKWh = 0;
+            let daysWithUsageThisWeek = 0;
+            let daysWithUsageThisMonth = 0;
+
+            Object.keys(lastUsage.energyUsage.days).forEach((key, index) => {
+                // Note: it appears that only the last 30 days are stored.
+                lastMonthKWh += lastUsage.energyUsage.days[key];
+                if (index < 8) {
+                    // Current day's usage is always 0.
+                    last7daysKWh += lastUsage.energyUsage.days[key];
+                    if (lastUsage.energyUsage.days[key]) {
+                        daysWithUsageThisWeek++;
+                    }
+                }
+                if (lastUsage.energyUsage.days[key]) {
+                    daysWithUsageThisMonth++;
+                }
+                usage += key + ': ' + lastUsage.energyUsage.days[key].toFixed(3) + '\n';
+            });
+
             res.statusCode = 200;
             res.setHeader('Content-Type', 'text/plain');
             res.end(
-                usage +
-                'Usage for last 24 hours: ' + last24KWh.toFixed(3) + ' KWh\n'
+                usage
+                + 'Usage in last 24 hours: ' + last24hoursKWh.toFixed(3) + ' KWh\n'
+                + 'Usage over last 7 days: ' + last7daysKWh.toFixed(3) + ' KWh\n'
+                + 'Average over last week: ' + (last7daysKWh / daysWithUsageThisWeek).toFixed(3) + ' KWh\n'
+                + 'Projected annual usage: ' + (last7daysKWh / daysWithUsageThisWeek * 365).toFixed(3) + ' KWh\n'
             );
             break;
 
