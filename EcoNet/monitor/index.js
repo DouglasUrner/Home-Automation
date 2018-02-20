@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const moment = require('moment');
 
 const host = 'econet-api.rheemcert.com';
-const minutesBetweenSamples = 5;
+const minutesBetweenSamples = 1;
 const sampleInterval = minutesBetweenSamples * 60 * 1000;
 
 // Get credentials
