@@ -3,7 +3,7 @@ const moment = require('moment');
 
 const host = 'econet-api.rheemcert.com';
 
-const statusInterval = minutes(1);
+const statusInterval = minutes(4); // Heater seems to update every 4 minutes.
 const usageInterval = minutes(60);
 
 function minutes(m) {
@@ -39,10 +39,17 @@ const server = http.createServer((req, res) => {
             break;
 
         case '/usage':
+            let usage = '';
+            let last24KWh = 0;
+            Object.keys(lastUsage.energyUsage.hours).forEach((key, index) => {
+                last24KWh += lastUsage.energyUsage.hours[key];
+                usage += key + ': ' + lastUsage.energyUsage.hours[key].toFixed(3) + '\n';
+            })
             res.statusCode = 200;
             res.setHeader('Content-Type', 'text/plain');
             res.end(
-                lastUsage.toString()
+                usage +
+                'Usage for last 24 hours: ' + last24KWh.toFixed(3) + ' KWh\n'
             );
             break;
 
@@ -64,7 +71,7 @@ server.listen(port, hostname, () => {
 
 // Collect operating data.
 
-let currentStatus = '';
+let currentStatus = {};
 let lastUsage = '';
 let cachedToken = '';
 
@@ -90,36 +97,40 @@ async function getToken() {
 }
 
 async function logStatus() {
-    const token = await getToken();
+    try {
+        const token = await getToken();
 
-    const id = credentials.id;
+        const id = credentials.id;
 
-    const equipRes = await (await fetch('https://' + host + '/equipment/' + id, {
-        headers: {
-            Accept: 'application/json, text/plain, */*',
-            Authorization: 'Bearer ' + token
-        },
-    })).json();
+        const equipRes = await (await fetch('https://' + host + '/equipment/' + id, {
+            headers: {
+                Accept: 'application/json, text/plain, */*',
+                Authorization: 'Bearer ' + token
+            },
+        })).json();
 
-    let log = moment().format();
-    log += " - L - ";
-    log += equipRes.mode;
-    log += " - lower " + equipRes.lowerTemp.toFixed(2);
-    log += " - upper " + equipRes.upperTemp.toFixed(2);
-    log += " - ambient " + equipRes.ambientTemp.toFixed(2);
-    log += " - ";
-    ([
-        "isLoadShiftOpted", "isLoadShedOpted",
-        "isLoadShedActive", "isLoadShiftActive",
-        "isEnabled", "isConnected", "isOnVacation", "hasCriticalAlert", "inUse"
-    ]).forEach(flag => {
-        if (equipRes[flag]) {
-            log += flag + ' '
-        }
-    });
-    console.log(log);
+        let log = moment().format();
+        log += " - L - ";
+        log += equipRes.mode;
+        log += " - lower " + equipRes.lowerTemp.toFixed(2);
+        log += " - upper " + equipRes.upperTemp.toFixed(2);
+        log += " - ambient " + equipRes.ambientTemp.toFixed(2);
+        log += " - ";
+        ([
+            "isLoadShiftOpted", "isLoadShedOpted",
+            "isLoadShedActive", "isLoadShiftActive",
+            "isEnabled", "isConnected", "isOnVacation", "hasCriticalAlert", "inUse"
+        ]).forEach(flag => {
+            if (equipRes[flag]) {
+                log += flag + ' '
+            }
+        });
+        console.log(log);
 
-    currentStatus = equipRes;
+        currentStatus = equipRes;
+    } catch (e) {
+        console.log(moment().format() + ' - E - ' + e.message)
+    }
 }
 
 async function getUsage() {
@@ -132,9 +143,7 @@ async function getUsage() {
             Authorization: 'Bearer ' + token
         },
     })).json();
-    // console.log(usageRes.hours['2018-02-19T16:00:00.000']);
-    console.log(usageRes.energyUsage.hours['2018-02-19T16:00:00.000']);
-    console.log(usageRes.energyUsage.report.reports[0]);
+
     lastUsage = usageRes;
 }
 
