@@ -80,20 +80,24 @@ async function getToken() {
         return cachedToken
     }
 
-    const loginRes = await (await fetch('https://' + host + '/auth/token', {
-        method: 'POST',
-        headers: {
-            Accept: 'application/json, text/plain, */*',
-            Authorization: 'Basic ' + credentials.authorization,
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        },
-        body: 'username=' + credentials.username
-        + '&password=' + credentials.password + '&grant_type=password'
-    })).json();
+    try {
+        const loginRes = await (await fetch('https://' + host + '/auth/token', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json, text/plain, */*',
+                Authorization: 'Basic ' + credentials.authorization,
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: 'username=' + credentials.username
+            + '&password=' + credentials.password + '&grant_type=password'
+        })).json();
 
-    cachedToken = loginRes.access_token;
+        cachedToken = loginRes.access_token;
 
-    return cachedToken;
+        return cachedToken;
+    } catch (e) {
+        console.log(moment().format() + ' - E - ' + e.message)
+    }
 }
 
 async function logStatus() {
@@ -134,17 +138,21 @@ async function logStatus() {
 }
 
 async function getUsage() {
-    const token = await getToken()
+    try {
+        const token = await getToken()
 
-    const usageRes = await (
-        await fetch('https://' + host + '/equipment/' + credentials.id + '/usage', {
-        headers: {
-            Accept: 'application/json, text/plain, */*',
-            Authorization: 'Bearer ' + token
-        },
-    })).json();
+        const usageRes = await (
+            await fetch('https://' + host + '/equipment/' + credentials.id + '/usage', {
+                headers: {
+                    Accept: 'application/json, text/plain, */*',
+                    Authorization: 'Bearer ' + token
+                },
+            })).json();
 
-    lastUsage = usageRes;
+        lastUsage = usageRes;
+    } catch (e) {
+        console.log(moment().format() + ' - E - ' + e.message)
+    }
 }
 
 logStatus();
